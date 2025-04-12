@@ -14,7 +14,6 @@ class Server:
     def broadcast(self, msg):
         for client in self.clients:
             client.send(msg)
-    
 
     def handle(self, client):
         while True:
