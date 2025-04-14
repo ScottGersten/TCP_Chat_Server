@@ -33,6 +33,22 @@ class Server:
             except:
                 print("Enter an integer")
 
+    def server_write(self):
+        while True:
+            message = input("")
+            if message == self.EXIT_MESSAGE:
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down, all clients will be disconnected.".encode("ascii"))
+                for client in self.clients:
+                    client.send(self.EXIT_MESSAGE.encode("ascii"))
+                    client.close()
+                self.server.close()
+                break
+            else:
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
+                self.broadcast(message)
+
     def broadcast(self, msg):
         for client in self.clients:
             client.send(msg)
@@ -55,7 +71,6 @@ class Server:
             except:
                 index = self.clients.index(client)
                 nickname = self.nicknames[index]
-                #client.remove(self.clients)
                 self.clients.remove(client)
                 self.nicknames.remove(nickname)
                 client.close()
@@ -63,9 +78,9 @@ class Server:
                 self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: {nickname} left the chat.".encode("ascii"))
                 print(f"{nickname} has disconnected.")
 
-                if not self.clients:
-                    print("All clients have disconnected. Shutting down the server.")
-                    self.server.close()
+                # if not self.clients:
+                #     print("All clients have disconnected. Shutting down the server.")
+                #     self.server.close()
 
                 break
 
@@ -94,7 +109,14 @@ class Server:
                 thread.start()
             except OSError:
                 break
+    
+    def run(self):
+        receive_thread = threading.Thread(target=self.receive)
+        receive_thread.start()
+
+        write_thread = threading.Thread(target=self.server_write)
+        write_thread.start()
 
 if __name__ == "__main__":
     server = Server()
-    server.receive()
+    server.run()
