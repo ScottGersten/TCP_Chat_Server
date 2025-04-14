@@ -1,15 +1,34 @@
 import socket
 import threading
+import sys
 
 class Client:
-    def __init__(self, host="127.0.0.1", port=55555, buff_size=1024,
+    def __init__(self, host="127.0.0.1", buff_size=1024, 
                  nick_name_msg="***NICK_NAME***", exit_msg = "/kill"):
+        port = self.get_port()
         self.nickname = input("Choose a nickname: ")
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client.connect((host, port))
+        try:
+            self.client.connect((host, port))
+        except:
+            print("No server found on TCP port, closing client.")
+            sys.exit(0)
         self.BUFFER_SIZE = buff_size
         self.NICK_NAME_MESSAGE = nick_name_msg
         self.EXIT_MESSAGE = exit_msg
+
+    @staticmethod
+    def get_port():
+        while True:
+            port = input("Enter the port number [1025, 65535]: ")
+            try:
+                port = int(port)
+                if port >= 1025 and port <= 65535:
+                    return port
+                else:
+                    print("Port must be in range [1025, 65535].")
+            except:
+                print("Enter an integer")
 
     def receive(self):
         while True:
