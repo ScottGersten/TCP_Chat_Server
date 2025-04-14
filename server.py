@@ -13,6 +13,7 @@ class Server:
         self.BUFFER_SIZE = buffer_size
         self.NICK_NAME_MESSAGE = nick_name_msg
         self.EXIT_MESSAGE = exit_msg
+        open("chat_log.txt", "w").close()
         print("The server is listening...")
 
     @staticmethod
@@ -29,11 +30,11 @@ class Server:
                 print("Enter an integer")
 
     def broadcast(self, msg):
-        # decoded_msg = msg.decode("ascii")
-        # decoded_msg += "\n"
-        # msg = decoded_msg.encode("ascii")
         for client in self.clients:
             client.send(msg)
+        print(msg.decode("ascii"))
+        with open("chat_log.txt", "a") as file:
+            print(msg.decode("ascii"), file=file)
 
     def handle(self, client):
         while True:
