@@ -1,9 +1,10 @@
 import threading
 import socket
+import datetime
 
 class Server:
-    def __init__(self, host="127.0.0.1", buffer_size=1024, 
-                 nick_name_msg="***NICK_NAME***", exit_msg="/kill"):
+    def __init__(self, host="127.0.0.1", buffer_size=1024, server_name = "SERVER",
+                 exit_msg="/kill"):
         port = self.get_port()
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
@@ -11,7 +12,10 @@ class Server:
         self.clients = []
         self.nicknames = []
         self.BUFFER_SIZE = buffer_size
-        self.NICK_NAME_MESSAGE = nick_name_msg
+        self.SERVER_NAME = server_name
+        self.NICK_NAME_MESSAGE = "***NICK_NAME***"
+        self.NICK_NAME_TAKEN = "***TAKEN***"
+        self.NICK_NAME_ACCEPTED = "***ACCEPTED***"
         self.EXIT_MESSAGE = exit_msg
         open("chat_log.txt", "w").close()
         print("The server is listening...")
@@ -41,8 +45,12 @@ class Server:
             try:
                 message = client.recv(self.BUFFER_SIZE)
                 decoded_message = message.decode("ascii")
+
                 if decoded_message == self.EXIT_MESSAGE:
                     raise Exception("Client requested disconnect.")
+                
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                message = f"[{timestamp}] {decoded_message}".encode("ascii")
                 self.broadcast(message)
             except:
                 index = self.clients.index(client)
@@ -51,7 +59,8 @@ class Server:
                 self.clients.remove(client)
                 self.nicknames.remove(nickname)
                 client.close()
-                self.broadcast(f"{nickname} left the chat.".encode("ascii"))
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: {nickname} left the chat.".encode("ascii"))
                 print(f"{nickname} has disconnected.")
 
                 if not self.clients:
@@ -68,12 +77,18 @@ class Server:
 
                 client.send(self.NICK_NAME_MESSAGE.encode("ascii"))
                 nickname = client.recv(self.BUFFER_SIZE).decode("ascii")
+                if nickname == self.SERVER_NAME or nickname in self.nicknames:
+                    client.send(self.NICK_NAME_TAKEN.encode("ascii"))
+                    client.close()
+                    continue
+                client.send(self.NICK_NAME_ACCEPTED.encode("ascii"))   
                 self.nicknames.append(nickname)
                 self.clients.append(client)
 
                 print(f"nickname of the client is {nickname}")
                 client.send(f"Welcome, you are connected to the server. \"{self.EXIT_MESSAGE}\" to exit.\n".encode("ascii"))
-                self.broadcast(f"{nickname} has joined the chat.".encode("ascii"))
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: {nickname} has joined the chat.".encode("ascii"))
 
                 thread = threading.Thread(target=self.handle, args=(client,))
                 thread.start()

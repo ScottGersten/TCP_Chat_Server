@@ -3,18 +3,20 @@ import threading
 import sys
 
 class Client:
-    def __init__(self, host="127.0.0.1", buff_size=1024, 
-                 nick_name_msg="***NICK_NAME***", exit_msg = "/kill"):
+    def __init__(self, host="127.0.0.1", buff_size=1024, exit_msg = "/kill"):
         port = self.get_port()
         self.nickname = input("Choose a nickname: ")
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connected = True
         try:
             self.client.connect((host, port))
         except:
+            self.connected = False
             print("No server found on TCP port, closing client.")
-            sys.exit(0)
         self.BUFFER_SIZE = buff_size
-        self.NICK_NAME_MESSAGE = nick_name_msg
+        self.NICK_NAME_MESSAGE = "***NICK_NAME***"
+        self.NICK_NAME_TAKEN = "***TAKEN***"
+        self.NICK_NAME_ACCEPTED = "***ACCEPTED***"
         self.EXIT_MESSAGE = exit_msg
 
     @staticmethod
@@ -36,6 +38,13 @@ class Client:
                 message = self.client.recv(self.BUFFER_SIZE).decode("ascii")
                 if message == self.NICK_NAME_MESSAGE:
                     self.client.send(self.nickname.encode("ascii"))
+                elif message == self.NICK_NAME_TAKEN:
+                    print("Nickname taken, terminating connection.")
+                    self.client.send(self.EXIT_MESSAGE.encode("ascii"))
+                    raise Exception
+                elif message == self.NICK_NAME_ACCEPTED:
+                    write_thread = threading.Thread(target=self.write)
+                    write_thread.start()
                 else:
                     print(message)
             except:
@@ -58,9 +67,10 @@ class Client:
         receive_thread = threading.Thread(target=self.receive)
         receive_thread.start()
 
-        write_thread = threading.Thread(target=self.write)
-        write_thread.start()
+        # write_thread = threading.Thread(target=self.write)
+        # write_thread.start()
 
 if __name__ == "__main__":
     client = Client()
-    client.run()
+    if client.connected:
+        client.run()
