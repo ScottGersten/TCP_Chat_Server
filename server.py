@@ -35,8 +35,15 @@ class Server:
 
     def server_write(self):
         while True:
-            message = input("")
-            if message == self.EXIT_MESSAGE:
+            try:
+                message = input("")
+                if message == self.EXIT_MESSAGE:
+                    raise Exception
+                else:
+                    timestamp = datetime.datetime.now().strftime("%D %T")
+                    message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
+                    self.broadcast(message)
+            except:
                 timestamp = datetime.datetime.now().strftime("%D %T")
                 self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down, all clients will be disconnected.".encode("ascii"))
                 for client in self.clients:
@@ -44,10 +51,6 @@ class Server:
                     client.close()
                 self.server.close()
                 break
-            else:
-                timestamp = datetime.datetime.now().strftime("%D %T")
-                message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
-                self.broadcast(message)
 
     def broadcast(self, msg):
         for client in self.clients:

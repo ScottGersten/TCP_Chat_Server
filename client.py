@@ -46,7 +46,8 @@ class Client:
                     write_thread = threading.Thread(target=self.write)
                     write_thread.start()
                 elif message == self.EXIT_MESSAGE:
-                    self.client.close()
+                    #self.client.close()
+                    raise Exception
                 else:
                     print(message)
             except:
@@ -56,14 +57,17 @@ class Client:
     
     def write(self):
         while True:
-            #message = f"{self.nickname}: {input("")}"
-            message = input("")
-            if message == self.EXIT_MESSAGE:
-                self.client.send(self.EXIT_MESSAGE.encode("ascii"))
+            try:
+                message = input("")
+                if message == self.EXIT_MESSAGE:
+                    self.client.send(self.EXIT_MESSAGE.encode("ascii"))
+                    self.client.close()
+                    break
+                else:
+                    self.client.send(f"{self.nickname}: {message}".encode("ascii"))
+            except:
                 self.client.close()
                 break
-            else:
-                self.client.send(f"{self.nickname}: {message}".encode("ascii"))
 
     def run(self):
         receive_thread = threading.Thread(target=self.receive)
