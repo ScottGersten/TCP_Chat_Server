@@ -66,7 +66,8 @@ class Server:
                 decoded_message = message.decode("ascii")
 
                 if decoded_message == self.EXIT_MESSAGE:
-                    raise Exception("Client requested disconnect.")
+                    print("Client requested disconnect.")
+                    raise Exception
                 
                 timestamp = datetime.datetime.now().strftime("%D %T")
                 message = f"[{timestamp}] {decoded_message}".encode("ascii")

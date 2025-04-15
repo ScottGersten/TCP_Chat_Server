@@ -5,7 +5,7 @@ import sys
 class Client:
     def __init__(self, host="127.0.0.1", buff_size=1024, exit_msg = "/kill"):
         port = self.get_port()
-        self.nickname = input("Choose a nickname: ")
+        self.nickname = self.get_nick_name()
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connected = True
         try:
@@ -20,6 +20,15 @@ class Client:
         self.EXIT_MESSAGE = exit_msg
 
     @staticmethod
+    def get_nick_name():
+        nickname = ""
+        while not nickname.strip():
+            nickname = input("Choose a nickname: ")
+            if not nickname.strip():
+                print("Cannot enter whitespace for name.")
+        return nickname
+
+    @staticmethod
     def get_port():
         while True:
             port = input("Enter the port number [1025, 65535]: ")
@@ -30,7 +39,7 @@ class Client:
                 else:
                     print("Port must be in range [1025, 65535].")
             except:
-                print("Enter an integer")
+                print("Enter an integer.")
 
     def receive(self):
         while True:
