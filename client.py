@@ -5,7 +5,7 @@ import sys
 class Client:
     def __init__(self, host="127.0.0.1", buff_size=1024, exit_msg = "/kill"):
         port = self.get_port()
-        self.nickname = input("Choose a nickname: ")
+        self.nickname = self.get_nick_name()
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connected = True
         try:
@@ -20,6 +20,15 @@ class Client:
         self.EXIT_MESSAGE = exit_msg
 
     @staticmethod
+    def get_nick_name():
+        nickname = ""
+        while not nickname.strip():
+            nickname = input("Choose a nickname: ")
+            if not nickname.strip():
+                print("Cannot enter whitespace for name.")
+        return nickname
+
+    @staticmethod
     def get_port():
         while True:
             port = input("Enter the port number [1025, 65535]: ")
@@ -30,7 +39,7 @@ class Client:
                 else:
                     print("Port must be in range [1025, 65535].")
             except:
-                print("Enter an integer")
+                print("Enter an integer.")
 
     def receive(self):
         while True:
@@ -45,6 +54,10 @@ class Client:
                 elif message == self.NICK_NAME_ACCEPTED:
                     write_thread = threading.Thread(target=self.write)
                     write_thread.start()
+                #elif message == self.EXIT_MESSAGE:
+                    #self.client.close()
+                    #raise Exception
+                    #sys.exit(0)
                 else:
                     print(message)
             except:
@@ -54,14 +67,17 @@ class Client:
     
     def write(self):
         while True:
-            #message = f"{self.nickname}: {input("")}"
-            message = input("")
-            if message == self.EXIT_MESSAGE:
-                self.client.send(self.EXIT_MESSAGE.encode("ascii"))
+            try:
+                message = input("")
+                if message == self.EXIT_MESSAGE:
+                    self.client.send(self.EXIT_MESSAGE.encode("ascii"))
+                    self.client.close()
+                    break
+                else:
+                    self.client.send(f"{self.nickname}: {message}".encode("ascii"))
+            except:
                 self.client.close()
                 break
-            else:
-                self.client.send(f"{self.nickname}: {message}".encode("ascii"))
 
     def run(self):
         receive_thread = threading.Thread(target=self.receive)
