@@ -54,9 +54,10 @@ class Client:
                 elif message == self.NICK_NAME_ACCEPTED:
                     write_thread = threading.Thread(target=self.write)
                     write_thread.start()
-                elif message == self.EXIT_MESSAGE:
+                #elif message == self.EXIT_MESSAGE:
                     #self.client.close()
-                    raise Exception
+                    #raise Exception
+                    #sys.exit(0)
                 else:
                     print(message)
             except:

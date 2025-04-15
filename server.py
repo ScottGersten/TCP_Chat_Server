@@ -34,22 +34,40 @@ class Server:
                 print("Enter an integer")
 
     def server_write(self):
+        # while True:
+        #     try:
+        #         message = input("")
+        #         if message == self.EXIT_MESSAGE:
+        #             raise Exception
+        #         else:
+        #             timestamp = datetime.datetime.now().strftime("%D %T")
+        #             message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
+        #             self.broadcast(message)
+        #     except:
+        #         timestamp = datetime.datetime.now().strftime("%D %T")
+        #         self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down, all clients will be disconnected.".encode("ascii"))
+        #         for client in self.clients:
+        #             client.send(self.EXIT_MESSAGE.encode("ascii"))
+        #             client.close()
+        #         self.server.close()
+        #         break
         while True:
             try:
                 message = input("")
                 if message == self.EXIT_MESSAGE:
-                    raise Exception
+                    if not self.clients:
+                        raise Exception
+                    else:
+                        print("There are still clients connected, cannot shutdown.")
                 else:
                     timestamp = datetime.datetime.now().strftime("%D %T")
                     message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
                     self.broadcast(message)
             except:
-                timestamp = datetime.datetime.now().strftime("%D %T")
-                self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down, all clients will be disconnected.".encode("ascii"))
-                for client in self.clients:
-                    client.send(self.EXIT_MESSAGE.encode("ascii"))
-                    client.close()
+                print("Closing the server.")
                 self.server.close()
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down.".encode("ascii"))
                 break
 
     def broadcast(self, msg):
