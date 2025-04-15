@@ -2,30 +2,49 @@ import threading
 import socket
 import datetime
 
+# Class to represent the server
 class Server:
+    # Use the local host, 1024 bytes per buffer, and defaut values for 
+    # the server name and termination message
     def __init__(self, host="127.0.0.1", buffer_size=1024, server_name = "SERVER",
                  exit_msg="/kill"):
+        
+        # Get the TCP Port number from the user
         port = self.get_port()
+
+        # Create a TCP socket for the server using local host and the chosen TCP port
+        # Set the server to listen for client connections
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen()
+
+        # Create empty lists to hold the client objects and their alliases
         self.clients = []
         self.nicknames = []
+
+        # Set class constants
         self.BUFFER_SIZE = buffer_size
         self.SERVER_NAME = server_name
         self.NICK_NAME_MESSAGE = "***NICK_NAME***"
         self.NICK_NAME_TAKEN = "***TAKEN***"
         self.NICK_NAME_ACCEPTED = "***ACCEPTED***"
         self.EXIT_MESSAGE = exit_msg
+
+        # Clear the chat log
         open("chat_log.txt", "w").close()
+
+        # Show the server is listening for clients
         print("The server is listening...")
 
+    # Get the TCP port from the user with bounds and error checking
     @staticmethod
     def get_port():
         while True:
             port = input("Enter the port number [1025, 65535]: ")
             try:
+                # Ensure port number is an int
                 port = int(port)
+                # Ensure port number is in [1025, 65535]
                 if port >= 1025 and port <= 65535:
                     return port
                 else:
@@ -33,80 +52,91 @@ class Server:
             except:
                 print("Enter an integer")
 
+    # Allow the server to send messages and terminate
+    # Operates in its own thread
     def server_write(self):
-        # while True:
-        #     try:
-        #         message = input("")
-        #         if message == self.EXIT_MESSAGE:
-        #             raise Exception
-        #         else:
-        #             timestamp = datetime.datetime.now().strftime("%D %T")
-        #             message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
-        #             self.broadcast(message)
-        #     except:
-        #         timestamp = datetime.datetime.now().strftime("%D %T")
-        #         self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down, all clients will be disconnected.".encode("ascii"))
-        #         for client in self.clients:
-        #             client.send(self.EXIT_MESSAGE.encode("ascii"))
-        #             client.close()
-        #         self.server.close()
-        #         break
+        # Loop until shutdown
         while True:
-            try:
-                message = input("")
-                if message == self.EXIT_MESSAGE:
-                    if not self.clients:
-                        raise Exception
-                    else:
-                        print("There are still clients connected, cannot shutdown.")
-                else:
-                    timestamp = datetime.datetime.now().strftime("%D %T")
-                    message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
-                    self.broadcast(message)
-            except:
-                print("Closing the server.")
-                self.server.close()
-                timestamp = datetime.datetime.now().strftime("%D %T")
-                self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down.".encode("ascii"))
-                break
+            # Get the message
+            message = input("")
 
+            # Message is /kill
+            if message == self.EXIT_MESSAGE:
+                # Only close server if all clients are disconnected
+                if not self.clients:
+                    print("Closing the server.")
+                    self.server.close()
+                    timestamp = datetime.datetime.now().strftime("%D %T")
+                    self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: The server is shutting down.".encode("ascii"))
+                    break
+                else:
+                    print("There are still clients connected, cannot shutdown.")
+
+            # Broadcast all other messages to clients
+            else:
+                timestamp = datetime.datetime.now().strftime("%D %T")
+                message = f"[{timestamp}] {self.SERVER_NAME}: {message}".encode("ascii")
+                self.broadcast(message)
+            
+    
+    # Send a message to all connected clients
     def broadcast(self, msg):
+        # Send to all clients
         for client in self.clients:
             client.send(msg)
+
+        # Show message on server side
         print(msg.decode("ascii"))
+
+        # Save messages to chat log
         with open("chat_log.txt", "a") as file:
             print(msg.decode("ascii"), file=file)
 
+    # Handle messages received from a client
+    # Separate thread for each client connected
     def handle(self, client):
+        # Loop until client shuts down
         while True:
             try:
+                # Get message from a client
                 message = client.recv(self.BUFFER_SIZE)
                 decoded_message = message.decode("ascii")
 
+                # See if the client is attempting to disconnect
                 if decoded_message == self.EXIT_MESSAGE:
-                    print("Client requested disconnect.")
-                    raise Exception
-                
+                    # Remove the client
+                    raise Exception("Client requested disconnect.")
+                # Send message to all clients
+                # Use timestamps to show date and time
                 timestamp = datetime.datetime.now().strftime("%D %T")
                 message = f"[{timestamp}] {decoded_message}".encode("ascii")
                 self.broadcast(message)
-            except:
+
+            # Close the client in case of an error
+            except Exception as excp:
+                # Show exception
+                print(f"{excp}")
+
+                # Find the client in list of clients and find its alias
                 index = self.clients.index(client)
                 nickname = self.nicknames[index]
+
+                # Remove the client and its alias from the lists
+                # close the client
                 self.clients.remove(client)
                 self.nicknames.remove(nickname)
                 client.close()
+
+                # Send a message detailing which client disconnected
                 timestamp = datetime.datetime.now().strftime("%D %T")
                 self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: {nickname} left the chat.".encode("ascii"))
                 print(f"{nickname} has disconnected.")
-
-                # if not self.clients:
-                #     print("All clients have disconnected. Shutting down the server.")
-                #     self.server.close()
-
                 break
-
+    
+    # Wait for connections from clients
+    # Operates in its own thread
     def receive(self):
+        # Loop until server shuts down
         while True:
             try:
                 client, address = self.server.accept()
