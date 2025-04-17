@@ -1,3 +1,8 @@
+# Scott Gersten
+# YL91135
+# sgerste1@umbc.edu
+# client.py
+
 import socket
 import threading
 

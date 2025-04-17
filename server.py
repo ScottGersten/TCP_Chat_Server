@@ -1,3 +1,8 @@
+# Scott Gersten
+# YL91135
+# sgerste1@umbc.edu
+# server.py
+
 import threading
 import socket
 import datetime
@@ -6,7 +11,7 @@ import datetime
 class Server:
     # Use the local host, 1024 bytes per buffer, and default values for 
     # the server name and termination message
-    def __init__(self, host="127.0.0.1", buffer_size=1024, server_name = "SERVER",
+    def __init__(self, host="127.0.0.1", buffer_size=1024, server_name="SERVER",
                  exit_msg="/kill", logfile="chat_log.log"):
         
         # Get the TCP Port number from the user
