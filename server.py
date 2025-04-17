@@ -4,10 +4,10 @@ import datetime
 
 # Class to represent the server
 class Server:
-    # Use the local host, 1024 bytes per buffer, and defaut values for 
+    # Use the local host, 1024 bytes per buffer, and default values for 
     # the server name and termination message
     def __init__(self, host="127.0.0.1", buffer_size=1024, server_name = "SERVER",
-                 exit_msg="/kill"):
+                 exit_msg="/kill", logfile="chat_log.log"):
         
         # Get the TCP Port number from the user
         port = self.get_port()
@@ -29,9 +29,10 @@ class Server:
         self.NICK_NAME_TAKEN = "***TAKEN***"
         self.NICK_NAME_ACCEPTED = "***ACCEPTED***"
         self.EXIT_MESSAGE = exit_msg
+        self.LOGFILE = logfile
 
         # Clear the chat log
-        open("chat_log.txt", "w").close()
+        open(self.LOGFILE, "w").close()
 
         # Show the server is listening for clients
         print("The server is listening...")
@@ -60,7 +61,7 @@ class Server:
             # Get the message
             message = input("")
 
-            # Message is /kill
+            # Message is calling for termination of server
             if message == self.EXIT_MESSAGE:
                 # Only close server if all clients are disconnected
                 if not self.clients:
@@ -89,7 +90,7 @@ class Server:
         print(msg.decode("ascii"))
 
         # Save messages to chat log
-        with open("chat_log.txt", "a") as file:
+        with open(self.LOGFILE, "a") as file:
             print(msg.decode("ascii"), file=file)
 
     # Handle messages received from a client
@@ -139,29 +140,46 @@ class Server:
         # Loop until server shuts down
         while True:
             try:
+                # Accept the client connection on the same TCP port
                 client, address = self.server.accept()
-                print(f"Connected with {str(address)}.")
+                print(f"Connection found on {str(address)}.")
 
+                # Ask the client to set an alias
                 client.send(self.NICK_NAME_MESSAGE.encode("ascii"))
                 nickname = client.recv(self.BUFFER_SIZE).decode("ascii")
+
+                # If alias already exists, terminate connection with client
                 if nickname == self.SERVER_NAME or nickname in self.nicknames:
                     client.send(self.NICK_NAME_TAKEN.encode("ascii"))
                     client.close()
                     continue
+
+                # If alias checks out, allow client to begin writing
                 client.send(self.NICK_NAME_ACCEPTED.encode("ascii"))   
                 self.nicknames.append(nickname)
                 self.clients.append(client)
 
+                # Show client's nickname server side
+                # Give the client a welcome message
                 print(f"nickname of the client is {nickname}")
                 client.send(f"Welcome, you are connected to the server. \"{self.EXIT_MESSAGE}\" to exit.\n".encode("ascii"))
+
+                # Broadcast the new client joining to all clients
                 timestamp = datetime.datetime.now().strftime("%D %T")
                 self.broadcast(f"[{timestamp}] {self.SERVER_NAME}: {nickname} has joined the chat.".encode("ascii"))
 
+                # Open a new thread for each client that connects
+                # which handles each client's messages in its own thread
                 thread = threading.Thread(target=self.handle, args=(client,))
                 thread.start()
+            
+            # When the server closes it will attempt to look for connections on
+            # a now closed port, close this thread when that occurs
             except OSError:
                 break
     
+    # Send messages from the server, and receive connections at the same time
+    # by having a thread for each
     def run(self):
         receive_thread = threading.Thread(target=self.receive)
         receive_thread.start()
@@ -169,6 +187,7 @@ class Server:
         write_thread = threading.Thread(target=self.server_write)
         write_thread.start()
 
+# Instantiate server class and start threads
 if __name__ == "__main__":
     server = Server()
     server.run()
